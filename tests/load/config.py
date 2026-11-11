@@ -121,6 +121,11 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     if not re.fullmatch(r"[a-z0-9-]+", storage_bucket):
         raise LoadTestConfigError("LOADTEST_STORAGE_BUCKET contains invalid characters")
 
+    gcp_project = _required(values, "LOADTEST_GCP_PROJECT")
+    production_gcp_project = _required(values, "LOADTEST_PRODUCTION_GCP_PROJECT")
+    if gcp_project == production_gcp_project:
+        raise LoadTestConfigError("The load-test GCP project must differ from the production GCP project")
+
     base_url = _https_origin(_required(values, "LOADTEST_BASE_URL"), "LOADTEST_BASE_URL")
     web_service = _required(values, "LOADTEST_WEB_SERVICE")
     worker_service = _required(values, "LOADTEST_WORKER_SERVICE")
@@ -154,7 +159,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
 
     return Settings(
         environment="isolated",
-        project_id=_required(values, "LOADTEST_GCP_PROJECT"),
+        project_id=gcp_project,
         region=_required(values, "LOADTEST_GCP_REGION"),
         web_service=web_service,
         worker_service=worker_service,

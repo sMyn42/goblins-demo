@@ -1,4 +1,5 @@
 node_modules/
+.venv-load/
 .next/
 out/
 dist/
@@ -15,6 +16,7 @@ test-results/
 *.log
 # Load-test credentials, session manifests, and generated raw artifacts are local-only.
 tests/load/.env.test
+!tests/load/.env.test.example
 tests/load/.state/
 tests/load/artifacts/
 __pycache__/

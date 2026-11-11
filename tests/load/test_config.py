@@ -23,6 +23,7 @@ class LoadTestConfigTests(unittest.TestCase):
             "LOADTEST_WORKER_SERVICE": "goblins-loadtest-worker",
             "LOADTEST_WORKER_MONITOR_TOKEN": "x" * 40,
             "LOADTEST_GCP_PROJECT": "goblins-loadtest",
+            "LOADTEST_PRODUCTION_GCP_PROJECT": "goblins-production",
             "LOADTEST_GCP_REGION": "us-central1",
             "LOADTEST_DATABASE_SECRET_NAME": "goblins-loadtest-database",
             "LOADTEST_STORAGE_SECRET_NAME": "goblins-loadtest-storage-key",
@@ -53,6 +54,7 @@ class LoadTestConfigTests(unittest.TestCase):
             ("LOADTEST_EXPECTED_DATABASE_HOST", "db.production-project.supabase.co"),
             ("LOADTEST_PRODUCTION_SUPABASE_URL", "https://loadtest-project.supabase.co"),
             ("LOADTEST_STORAGE_BUCKET", "student-work"),
+            ("LOADTEST_GCP_PROJECT", "goblins-production"),
             ("LOADTEST_WEB_SERVICE", "goblins-web"),
         ):
             with self.subTest(key=key):

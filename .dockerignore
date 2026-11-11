@@ -7,6 +7,9 @@ artifacts
 .env
 .env.*
 !.env.example
+tests/load/.env.test
+tests/load/.state
+tests/load/artifacts
 coverage
 test-results
 playwright-report
