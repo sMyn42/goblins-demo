@@ -8,7 +8,7 @@ export function assignmentSummary(assignment: Practice, work: readonly Submissio
   const draftScore = allGraded ? items.reduce((sum, item) => sum + (item!.finalGrade ?? item!.draftGrade)!.totalScore, 0) : null;
   const states = items.flatMap((item) => item ? [item.status] : []);
   const allSubmitted = items.length > 0 && submittedCount === items.length;
-  const status = allFinal ? "finalized" : submittedCount === 0 ? "not_submitted" : !allSubmitted ? "in_progress" : states.includes("permanent_failure") ? "permanent_failure" : states.includes("retryable_failure") ? "retryable_failure" : states.includes("auto_grading") ? "auto_grading" : states.includes("processing") ? "processing" : states.includes("submitted") ? "submitted" : "waiting_for_teacher";
+  const status = allFinal ? "finalized" : submittedCount === 0 ? "not_submitted" : states.includes("permanent_failure") ? "permanent_failure" : states.includes("retryable_failure") ? "retryable_failure" : !allSubmitted ? "in_progress" : states.includes("auto_grading") ? "auto_grading" : states.includes("processing") ? "processing" : states.includes("submitted") ? "submitted" : "waiting_for_teacher";
   const visible = items.filter((item) => item?.finalGrade || item?.draftGrade);
   const approved = items.filter((item) => item?.finalGrade);
   return { status, allSubmitted, submittedCount, totalProblems: items.length, finalScore, draftScore, maxPoints: assignment.maxPoints,

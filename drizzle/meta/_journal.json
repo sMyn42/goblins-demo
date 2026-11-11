@@ -36,6 +36,13 @@
       "when": 1794381005186,
       "tag": "0004_worker_progress_heartbeats",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794382473550,
+      "tag": "0005_manual_grade_failed_submissions",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { and, eq, gt, inArray, isNull, lte, or, sql, desc } from "drizzle-orm";
 import { Effect } from "effect";
 import { Conflict, StorageError } from "../core/errors";
 import { LeaseLost, publicationProblems } from "../grading/contracts";
-import type { GradeResult } from "../grading/contracts";
+import type { GradeResult, ManualGradeInput } from "../grading/contracts";
 import { COMPLETE_WORK, PRACTICE_CRITERIA, PRACTICE_PROMPT } from "../grading/fixtures";
 import { SubmissionRepository, type Practice, type RunInput, type OverrideHistory } from "../grading/ports";
 import { enqueueSQL } from "./queue";
@@ -95,7 +95,7 @@ export const makeSubmissionRepository = (db: Database): typeof SubmissionReposit
   forClass: (classId) => query("submission.class_list", async () => {
     const records = await db.select({ ...baseView, extractedAnswer: runs.extractedAnswer, result: grades.result, reviewed: grades.reviewedResult, reviewRevision: grades.reviewRevision, approvedAt: grades.approvedAt }).from(submissions)
       .innerJoin(users, eq(users.id, submissions.studentId)).leftJoin(runs, eq(runs.id, submissions.latestRunId)).leftJoin(grades, eq(grades.submissionId, submissions.id)).where(eq(submissions.classId, classId)).orderBy(desc(submissions.createdAt));
-    const history = await db.select({ id: overrides.id, submissionId: overrides.submissionId, teacherName: users.displayName, revision: overrides.revision, reason: overrides.reason, previousResult: overrides.previousResult, result: overrides.result, createdAt: overrides.createdAt }).from(overrides).innerJoin(submissions, eq(submissions.id, overrides.submissionId)).innerJoin(users, eq(users.id, overrides.teacherId)).where(eq(submissions.classId, classId)).orderBy(overrides.revision);
+    const history = await db.select({ id: overrides.id, submissionId: overrides.submissionId, type: overrides.kind, teacherName: users.displayName, revision: overrides.revision, reason: overrides.reason, previousResult: overrides.previousResult, result: overrides.result, createdAt: overrides.createdAt }).from(overrides).innerJoin(submissions, eq(submissions.id, overrides.submissionId)).innerJoin(users, eq(users.id, overrides.teacherId)).where(eq(submissions.classId, classId)).orderBy(overrides.revision);
     return records.map(({ result, reviewed, approvedAt, ...row }) => ({ ...row, reviewRevision: row.reviewRevision ?? 0, originalGrade: result, overrideHistory: history.filter((entry) => entry.submissionId === row.id) as OverrideHistory[], draftGrade: reviewed ?? result, finalGrade: row.status === "finalized" && approvedAt ? reviewed ?? result : null }));
   }),
   begin: (submissionId, runId, leaseSeconds) => query("grading.begin", () => db.transaction(async (tx) => {
@@ -164,6 +164,29 @@ export const makeSubmissionRepository = (db: Database): typeof SubmissionReposit
     await tx.insert(productEvents).values({ name: "teacher_override", actorId: teacherId });
     return revision;
   }), catch: (error) => error instanceof Conflict ? error : new StorageError({ operation: "grading.review" }) }),
+  manualGrade: (submissionId, classId, teacherId, input: ManualGradeInput) => Effect.tryPromise({ try: () => db.transaction(async (tx) => {
+    const [current] = await tx.select({ status: submissions.status, failureCode: submissions.failureCode, latestRunId: submissions.latestRunId, rubricVersionId: rubrics.id, criteria: rubrics.criteria, maxPoints: questions.maxPoints })
+      .from(submissions).innerJoin(classes, eq(classes.id, submissions.classId)).innerJoin(questions, eq(questions.id, submissions.questionVersionId)).innerJoin(rubrics, eq(rubrics.questionVersionId, questions.id))
+      .where(and(eq(submissions.id, submissionId), eq(submissions.classId, classId), eq(classes.teacherId, teacherId), inArray(submissions.status, ["retryable_failure", "permanent_failure"] as const)));
+    if (!current || !current.latestRunId || !current.failureCode) throw new Conflict({ message: "Only a failed submission in your class can be manually graded." });
+    const [failedRun] = await tx.select({ state: runs.state, failureCode: runs.failureCode }).from(runs).where(and(eq(runs.id, current.latestRunId), eq(runs.submissionId, submissionId)));
+    if (!failedRun || failedRun.state !== "failed" || failedRun.failureCode !== current.failureCode) throw new Conflict({ message: "The original failure record is unavailable. Reload the submission before grading." });
+    const ids = new Set(input.scores.map((score) => score.criterionId));
+    if (ids.size !== current.criteria.length || input.scores.length !== current.criteria.length || !input.scores.every((score) => Number.isFinite(score.score) && score.score >= 0 && current.criteria.some((criterion) => criterion.id === score.criterionId && score.score <= criterion.maxPoints))) throw new Conflict({ message: "Each rubric criterion needs one score within its point limit." });
+    const totalScore = input.scores.reduce((sum, score) => sum + score.score, 0);
+    if (totalScore > current.maxPoints) throw new Conflict({ message: "The total score exceeds the problem maximum." });
+    const result: GradeResult = {
+      criterionResults: current.criteria.map((criterion) => ({ criterionId: criterion.id, score: input.scores.find((score) => score.criterionId === criterion.id)!.score, explanation: "Scored manually by the teacher.", evidenceLineIndices: [] })),
+      totalScore, feedback: input.feedback, confidence: 1, reviewRequired: true, reviewReason: "Manually graded after a processing failure.", provider: "teacher", model: "manual",
+    };
+    const [updated] = await tx.update(submissions).set({ status: "waiting_for_teacher", updatedAt: sql`now()` })
+      .where(and(eq(submissions.id, submissionId), eq(submissions.classId, classId), inArray(submissions.status, ["retryable_failure", "permanent_failure"] as const))).returning({ id: submissions.id });
+    if (!updated) throw new Conflict({ message: "This failed submission changed. Reload before manually grading." });
+    await tx.insert(grades).values({ submissionId, runId: current.latestRunId, rubricVersionId: current.rubricVersionId, result, reviewRevision: 1 });
+    await tx.insert(overrides).values({ submissionId, teacherId, revision: 1, kind: "manual_grade", reason: input.reason, previousResult: null, result });
+    await tx.insert(productEvents).values({ name: "teacher_manual_grade", actorId: teacherId });
+    return 1;
+  }), catch: (error) => error instanceof Conflict ? error : new StorageError({ operation: "grading.manual_grade" }) }),
   approve: (submissionId, classId, teacherId, revision) => query("grading.approve", () => db.transaction(async (tx) => {
     const [owned] = await tx.select({ id: submissions.id }).from(submissions).innerJoin(classes, eq(classes.id, submissions.classId))
       .where(and(eq(submissions.id, submissionId), eq(submissions.classId, classId), eq(classes.teacherId, teacherId), eq(submissions.status, "waiting_for_teacher")));

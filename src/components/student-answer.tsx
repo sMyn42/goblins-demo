@@ -2,7 +2,7 @@
 import { useId, useRef, useState } from "react";
 import type { PracticeProblem, SubmissionView } from "../grading/ports";
 import { AnswerCanvas, type CanvasHandle } from "./answer-canvas";
-import { Grade } from "./submission-view";
+import { Grade, statuses } from "./submission-view";
 
 export function StudentAnswer({ practice, submission, pending, submit }: { practice: PracticeProblem; submission: SubmissionView | undefined; pending: boolean; submit: (body: unknown) => Promise<boolean> }) {
   const fieldId = useId();
@@ -12,7 +12,7 @@ export function StudentAnswer({ practice, submission, pending, submit }: { pract
   const canvas = useRef<CanvasHandle>(null);
   const key = useRef<string | null>(null);
   const [localError, setLocalError] = useState("");
-  if (submission) return <div className="student-result">{submission.failureCode && <p className="field-error">Processing failed. This is not a zero grade. Ask your teacher to retry.</p>}
+  if (submission) return <div className="student-result"><p role="status">{statuses[submission.status]}</p>{submission.failureCode && (submission.status === "permanent_failure" || submission.status === "retryable_failure") && <p className="field-error">Autograder processing failed. This is not a zero grade. Your teacher can retry grading or manually grade your submitted work.</p>}
     {submission.source.type === "typed" ? <pre className="answer-text">{submission.source.text}</pre> : <a href={`/api/submissions/${submission.id}/image`} target="_blank" rel="noreferrer">View your original work</a>}
     {submission.finalGrade ? <Grade value={submission.finalGrade} final /> : submission.draftGrade ? <Grade value={submission.draftGrade} final={false} /> : submission.status === "waiting_for_teacher" ? <p className="field-hint">Your grade will appear after teacher approval.</p> : null}
   </div>;

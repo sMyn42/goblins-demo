@@ -127,8 +127,8 @@ export const teacherOverrides = pgTable("teacher_overrides", {
   id: uuid("id").primaryKey().defaultRandom(),
   submissionId: uuid("submission_id").notNull().references(() => submissions.id),
   teacherId: uuid("teacher_id").notNull().references(() => teacherProfiles.userId),
-  revision: integer("revision").notNull(), reason: text("reason").notNull(),
-  previousResult: jsonb("previous_result").$type<GradeResult>().notNull(), result: jsonb("result").$type<GradeResult>().notNull(),
+  revision: integer("revision").notNull(), kind: varchar("kind", { length: 32 }).notNull().default("correction"), reason: text("reason").notNull(),
+  previousResult: jsonb("previous_result").$type<GradeResult>(), result: jsonb("result").$type<GradeResult>().notNull(),
   createdAt: createdAt(),
 }, (t) => [unique("override_submission_revision_unique").on(t.submissionId, t.revision)]);
 

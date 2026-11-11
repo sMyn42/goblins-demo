@@ -66,6 +66,11 @@ export const ReviewInput = Schema.Struct({
   feedback: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(10000)), reason: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(1000)),
 });
 export type ReviewInput = typeof ReviewInput.Type;
+export const ManualGradeInput = Schema.Struct({
+  scores: Schema.Array(Schema.Struct({ criterionId: Schema.String, score: Schema.Number.pipe(Schema.nonNegative(), Schema.finite()) })).pipe(Schema.minItems(1), Schema.maxItems(20)),
+  feedback: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(10000)), reason: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(1000)),
+});
+export type ManualGradeInput = typeof ManualGradeInput.Type;
 export const Question = Schema.Struct({
   id: Schema.UUID, assignmentVersionId: Schema.UUID, rubricVersionId: Schema.UUID, prompt: Schema.String,
   maxPoints: Schema.Number, expectedAnswers: Schema.Array(Schema.String), teacherSolution: Schema.String,

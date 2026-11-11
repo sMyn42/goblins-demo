@@ -1,6 +1,6 @@
 import { Context, Effect } from "effect";
 import type { Conflict, StorageError } from "../core/errors";
-import type { PublicationDraft, ReviewInput, AnswerSource, ExtractedAnswer, GradeResult, GradingRequest, LeaseLost, OCRRequest, ProviderFailure, Question, Status } from "./contracts";
+import type { PublicationDraft, ReviewInput, ManualGradeInput, AnswerSource, ExtractedAnswer, GradeResult, GradingRequest, LeaseLost, OCRRequest, ProviderFailure, Question, Status } from "./contracts";
 
 export class OCRProvider extends Context.Tag("goblins/OCRProvider")<OCRProvider, {
   extract: (request: OCRRequest) => Effect.Effect<ExtractedAnswer, ProviderFailure>;
@@ -18,7 +18,7 @@ export class GradingQueue extends Context.Tag("goblins/GradingQueue")<GradingQue
 }>() {}
 export type PracticeProblem = { id: string; prompt: string; maxPoints: number; position: number };
 export type Practice = { id: string; questionId: string; title: string; prompt: string; maxPoints: number; showDraftGrades: boolean; problems: PracticeProblem[] };
-export type OverrideHistory = { id: string; teacherName: string; revision: number; reason: string; previousResult: GradeResult; result: GradeResult; createdAt: Date };
+export type OverrideHistory = { id: string; type: "correction" | "manual_grade"; teacherName: string; revision: number; reason: string; previousResult: GradeResult | null; result: GradeResult; createdAt: Date };
 export type SubmissionView = {
   id: string; studentId: string; studentName: string; assignmentVersionId: string; questionVersionId: string; status: Status; attempts: number;
   source: AnswerSource; createdAt: Date; updatedAt: Date; failureCode: string | null;
@@ -41,6 +41,7 @@ export class SubmissionRepository extends Context.Tag("goblins/SubmissionReposit
   fail: (run: RunInput, code: string, permanent: boolean) => Effect.Effect<void, StorageError | LeaseLost>;
   setDraftVisibility: (assignmentId: string, classId: string, visible: boolean) => Effect.Effect<boolean, StorageError>;
   saveReview: (submissionId: string, classId: string, teacherId: string, input: ReviewInput) => Effect.Effect<number, StorageError | Conflict>;
+  manualGrade: (submissionId: string, classId: string, teacherId: string, input: ManualGradeInput) => Effect.Effect<number, StorageError | Conflict>;
   approve: (submissionId: string, classId: string, teacherId: string, revision?: number) => Effect.Effect<boolean, StorageError>;
   retry: (submissionId: string, classId: string) => Effect.Effect<boolean, StorageError>;
 }>() {}

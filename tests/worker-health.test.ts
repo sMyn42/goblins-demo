@@ -27,7 +27,7 @@ function harness(waitMs: number) {
   const registry = WorkerHeartbeats.of({ probe: Effect.suspend(() => reachable ? Effect.void : Effect.fail(new StorageError({ operation: "simulated queue outage" }))), record: (_id, _revision, snapshot) => Effect.sync(() => { reports.push(snapshot); }), list: Effect.succeed([]) });
   const config = { ...defaults, fixedMockOcrMs: waitMs, fixedMockGradingMs: 0, leaseSeconds: 600, ocrTimeoutMs: 400000, gradingTimeoutMs: 10000 };
   const queue = GradingQueue.of({ ready: Effect.void, enqueue: () => Effect.void, claim: () => Effect.sync(() => { claims++; return [{ id: "1", readCount: 1, submissionId: randomUUID() }]; }), acknowledge: () => Effect.sync(() => { acks++; }), defer: unused });
-  const repo = SubmissionRepository.of({ publishPractice: unused, practices: unused, questionsForClass: unused, practice: unused, questionForClass: unused, submit: unused, forStudent: unused, forClass: unused, setDraftVisibility: unused, saveReview: unused, approve: unused, retry: unused,
+  const repo = SubmissionRepository.of({ publishPractice: unused, practices: unused, questionsForClass: unused, practice: unused, questionForClass: unused, submit: unused, forStudent: unused, forClass: unused, setDraftVisibility: unused, saveReview: unused, manualGrade: unused, approve: unused, retry: unused,
     begin: (submissionId, runId) => Effect.succeed({ submissionId, runId, attempt: 1, source: { type: "typed", text: COMPLETE_WORK }, question } satisfies RunInput),
     recordOCR: () => Effect.void, complete: (_run, grade) => Effect.sync(() => { expect(grade.totalScore).toBe(10); completed++; }), fail: unused,
   });
@@ -119,7 +119,7 @@ describe("independent worker readiness and progress keepalive", () => {
     const short = Layer.succeed(GradingConfig, { ...defaults, fixedMockOcrMs: 150000, fixedMockGradingMs: 0, maxAttempts: 1, ocrTimeoutMs: 1000, leaseSeconds: 300 });
     // The normal timeout/failure persistence path uses an explicit failure, never a grade.
     const config = { ...defaults, fixedMockOcrMs: 150000, fixedMockGradingMs: 0, maxAttempts: 1, ocrTimeoutMs: 1000, leaseSeconds: 300 };
-    const repo = SubmissionRepository.of({ publishPractice: unused, practices: unused, questionsForClass: unused, practice: unused, questionForClass: unused, submit: unused, forStudent: unused, forClass: unused, setDraftVisibility: unused, saveReview: unused, approve: unused, retry: unused,
+    const repo = SubmissionRepository.of({ publishPractice: unused, practices: unused, questionsForClass: unused, practice: unused, questionForClass: unused, submit: unused, forStudent: unused, forClass: unused, setDraftVisibility: unused, saveReview: unused, manualGrade: unused, approve: unused, retry: unused,
       begin: (submissionId, runId) => Effect.succeed({ submissionId, runId, attempt: 1, source: { type: "typed", text: COMPLETE_WORK }, question } satisfies RunInput), recordOCR: unused, complete: unused, fail: () => Effect.void });
     const layer = Layer.mergeAll(h.layers, short, Layer.succeed(SubmissionRepository, repo), MockProvidersLive.pipe(Layer.provide(Layer.succeed(GradingConfig, config))));
     await virtual(Effect.scoped(Effect.gen(function* () {

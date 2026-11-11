@@ -5,7 +5,7 @@ import { decode } from "../core/contracts";
 import { Conflict, Forbidden, InvalidInput } from "../core/errors";
 import { Store } from "../core/ports";
 import { SubmissionRepository } from "./ports";
-import { PublicationDraft, publicationProblems, ReviewInput } from "./contracts";
+import { PublicationDraft, publicationProblems, ReviewInput, ManualGradeInput } from "./contracts";
 import { gradingConfig } from "./config";
 import { PrivateStorage, validateImage } from "../storage/service";
 
@@ -86,6 +86,16 @@ export const saveReview = (token: string | undefined, id: unknown, input: unknow
   const classroom = yield* (yield* Store).classByTeacher(user.id);
   if (!classroom) return yield* new Forbidden();
   return yield* (yield* SubmissionRepository).saveReview(submissionId, classroom.id, user.id, data);
+});
+export const manuallyGradeSubmission = (token: string | undefined, id: unknown, input: unknown) => Effect.gen(function* () {
+  const user = yield* authenticate(token);
+  if (user.role !== "teacher") return yield* new Forbidden();
+  const submissionId = yield* decode(Schema.UUID, id);
+  const data = yield* decode(ManualGradeInput, input);
+  if (!data.reason.trim() || !data.feedback.trim()) return yield* new InvalidInput({ message: "Enter feedback and a reason for the manual grade." });
+  const classroom = yield* (yield* Store).classByTeacher(user.id);
+  if (!classroom) return yield* new Forbidden();
+  return yield* (yield* SubmissionRepository).manualGrade(submissionId, classroom.id, user.id, data);
 });
 export const setDraftVisibility = (token: string | undefined, id: unknown, input: unknown) => Effect.gen(function* () {
   const user = yield* authenticate(token);
