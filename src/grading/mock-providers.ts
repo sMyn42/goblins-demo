@@ -3,7 +3,7 @@ import { Clock, Effect, Layer } from "effect";
 import { ConfigurationError } from "../core/errors";
 import { GradingConfig, type GradingSettings } from "./config";
 import { ProviderFailure, validateGrade, validateOCR } from "./contracts";
-import { COMPLETE_WORK, GRADING_FIXTURES, PRACTICE_PROMPT } from "./fixtures";
+import { GRADING_FIXTURES, PRACTICE_PROMPT } from "./fixtures";
 import { OCRProvider, TextGradingProvider } from "./ports";
 
 const uniform = (seed: string) => (createHash("sha256").update(seed).digest().readUInt32BE(0) + 1) / 4294967297;
@@ -31,8 +31,9 @@ export const MockOCRLive = Layer.effect(OCRProvider, Effect.gen(function* () {
   if (config.ocrProvider !== "mock") return yield* new ConfigurationError({ message: "Mock OCR Layer was selected with a non-mock configuration." });
   return OCRProvider.of({ extract: (request) => Effect.gen(function* () {
     const behaviorResult = yield* behavior(request.submissionId, "ocr", request.attempt ?? 1, config);
-    // Image mocks return a documented fixture, never claim to transcribe the actual image.
-    const text = request.source.type === "typed" ? request.source.text : COMPLETE_WORK;
+    // Image mocks choose a seeded fixture per submission; they never claim to transcribe pixels.
+    const imageFixture = GRADING_FIXTURES[Math.floor(uniform(`${config.mockSeed}:${request.submissionId}:ocr-fixture`) * GRADING_FIXTURES.length)];
+    const text = request.source.type === "typed" ? request.source.text : imageFixture.text;
     const answer = {
       id: randomUUID(), problemSubmissionId: request.submissionId,
       lines: text.split(/\r?\n/).map((line, index) => ({ index, text: line, kind: line.includes("=") ? "equation" as const : "text" as const, confidence: 1 })),

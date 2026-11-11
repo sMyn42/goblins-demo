@@ -1,0 +1,26 @@
+{
+  "student_accounts": 1550,
+  "image_fraction": 1.0,
+  "worker_concurrency": 2,
+  "max_drain_seconds": 1800,
+  "cohorts": [
+    {"id": "approval_smoke_1", "plan": "approval", "students": 1, "offset": 0, "ramp_seconds": 10, "sustain_seconds": 30, "worker_instances": 1, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "scale_50", "plan": "scale", "students": 50, "offset": 0, "ramp_seconds": 60, "sustain_seconds": 300, "worker_instances": 1, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "scale_250", "plan": "scale", "students": 250, "offset": 50, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 1, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "scale_1250", "plan": "scale", "students": 1250, "offset": 300, "ramp_seconds": 300, "sustain_seconds": 600, "worker_instances": 1, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "capacity_250_2_workers", "plan": "capacity", "students": 250, "offset": 0, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 2, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "capacity_250_5_workers", "plan": "capacity", "students": 250, "offset": 0, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 5, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "failure_baseline_250", "plan": "failures", "students": 250, "offset": 0, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 1, "failure_mode": "none", "failure_rate": 0.0},
+    {"id": "failure_transient_5pct_250", "plan": "failures", "students": 250, "offset": 0, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 1, "failure_mode": "transient", "failure_rate": 0.05},
+    {"id": "failure_transient_10pct_250", "plan": "failures", "students": 250, "offset": 0, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 1, "failure_mode": "transient", "failure_rate": 0.1},
+    {"id": "failure_permanent_5pct_250", "plan": "failures", "students": 250, "offset": 0, "ramp_seconds": 120, "sustain_seconds": 600, "worker_instances": 1, "failure_mode": "permanent", "failure_rate": 0.05},
+    {"id": "failure_hard_cutoff_manual_20", "plan": "timeout_manual", "students": 20, "offset": 1500, "ramp_seconds": 10, "sustain_seconds": 30, "worker_instances": 1, "worker_lease_seconds": 30, "ocr_timeout_ms": 60000, "grading_timeout_ms": 60000, "failure_mode": "timeout", "failure_rate": 0.5}
+  ],
+  "plans": {
+    "approval": ["approval_smoke_1"],
+    "scale": ["scale_50", "scale_250", "scale_1250"],
+    "capacity": ["capacity_250_2_workers", "capacity_250_5_workers"],
+    "failures": ["failure_baseline_250", "failure_transient_5pct_250", "failure_transient_10pct_250", "failure_permanent_5pct_250"],
+    "timeout_manual": ["failure_hard_cutoff_manual_20"]
+  }
+}

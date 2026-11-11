@@ -51,7 +51,7 @@ export const processJob = (job: Job) => Effect.gen(function* () {
   // A whole-run deadline expires BEFORE the DB fence/queue visibility lease.
   // Stale workers cannot write once the lease expires or a new run takes ownership.
   yield* pipeline(run).pipe(
-    Effect.timeoutFail({ duration: config.leaseSeconds * 1000 - 5000, onTimeout: () => new ProviderFailure({ stage: "grading", code: "timeout", retryable: true }) }),
+    Effect.timeoutFail({ duration: config.leaseSeconds * 1000 - 5000, onTimeout: () => new ProviderFailure({ stage: "grading", code: "hard_cutoff", retryable: true }) }),
     Effect.matchEffect({
       onSuccess: () => queue.acknowledge(job.id),
       onFailure: (error) => Effect.gen(function* () {

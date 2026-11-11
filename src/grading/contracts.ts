@@ -2,7 +2,7 @@ import { Schema, Effect } from "effect";
 import { Data } from "effect";
 
 export class ProviderFailure extends Data.TaggedError("ProviderFailure")<{
-  stage: "ocr" | "grading"; code: "rate_limited" | "unavailable" | "timeout" | "invalid_output" | "unsupported_input" | "unauthorized"; retryable: boolean; retryAfterSeconds?: number;
+  stage: "ocr" | "grading"; code: "rate_limited" | "unavailable" | "timeout" | "hard_cutoff" | "invalid_output" | "unsupported_input" | "unauthorized"; retryable: boolean; retryAfterSeconds?: number;
 }> {}
 export class LeaseLost extends Data.TaggedError("LeaseLost")<Record<never, never>> {}
 

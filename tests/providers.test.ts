@@ -31,6 +31,18 @@ describe("shared canonical schemas and provider parity", () => {
     expect(result.totalScore).toBe(fixture.answer + fixture.working);
     expect(result.reviewRequired).toBe(true);
   });
+  it("chooses reproducible, varied OCR fixtures for canvas submissions", async () => {
+    const mockConfig = { ...config, ocrProvider: "mock" as const, gradingProvider: "mock" as const, mockLatencyMs: 0, mockSeed: 42 };
+    const layer = MockProvidersLive.pipe(Layer.provide(Layer.succeed(GradingConfig, mockConfig)));
+    const ids = Array.from({ length: 50 }, () => randomUUID());
+    const extract = (id: string) => Effect.runPromise(Effect.gen(function* () {
+      return yield* (yield* OCRProvider).extract({ submissionId: id, source: { type: "image", objectKey: `students/test/${id}.png` } });
+    }).pipe(Effect.provide(layer)));
+    const answers = await Promise.all(ids.map(extract));
+    expect(new Set(answers.map((answer) => answer.fullText)).size).toBeGreaterThan(1);
+    expect(answers.every((answer) => GRADING_FIXTURES.some((fixture) => fixture.text === answer.fullText))).toBe(true);
+    expect((await extract(ids[0])).fullText).toBe(answers[0].fullText);
+  });
   it("rejects excessive, invented, missing, duplicate, inconsistent scores and invented evidence", async () => {
     const invalids = [
       { ...valid, totalScore: 99 },

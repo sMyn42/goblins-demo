@@ -91,7 +91,10 @@ describe("durable mock pipeline (real pgmq SQL and PostgreSQL transactions)", ()
     await runtime.runPromise(approveSubmission(a.teacher.token, firstId));
     const view = await runtime.runPromise(practiceOverview(a.student.token));
     expect(view.assignments).toHaveLength(2); expect(view.gradingContracts).toEqual([]); expect(view.roster).toEqual([]);
-    expect(view.submissions.find((item) => item.id === firstId)).toMatchObject({ assignmentVersionId: a.practice.id, status: "finalized", finalGrade: { totalScore: 10 } });
+    const imageGrade = view.submissions.find((item) => item.id === firstId)?.finalGrade;
+    expect(imageGrade?.totalScore).toBeGreaterThanOrEqual(0);
+    expect(imageGrade?.totalScore).toBeLessThanOrEqual(10);
+    expect(view.submissions.find((item) => item.id === firstId)).toMatchObject({ assignmentVersionId: a.practice.id, status: "finalized" });
     expect(view.submissions.find((item) => item.id === secondId)).toMatchObject({ assignmentVersionId: second.id, status: "waiting_for_teacher", draftGrade: { totalScore: 0 }, finalGrade: null });
     expect((await runtime.runPromise(practiceOverview(a.teacher.token))).gradingContracts).toHaveLength(2);
   });
@@ -241,6 +244,21 @@ describe("durable mock pipeline (real pgmq SQL and PostgreSQL transactions)", ()
     await runtime.runPromise(retrySubmission(teacher.token, id));
     expect((await db.select().from(schema.submissions))[0].status).toBe("retryable_failure");
   });
+  it("cuts off a hung provider before its worker lease expires", async () => {
+    const { student, practice } = await classroom();
+    await runtime.dispose();
+    runtime = createRuntime({ failureMode: "timeout", failureRate: 1, maxAttempts: 1, leaseSeconds: 15, ocrTimeoutMs: 60000, gradingTimeoutMs: 60000 });
+    const id = await runtime.runPromise(submitAnswer(student.token, answer(practice.questionId)));
+    const started = Date.now();
+    await runtime.runPromise(runBatch);
+    const elapsed = Date.now() - started;
+    const [submission] = await db.select().from(schema.submissions);
+    expect(elapsed).toBeGreaterThanOrEqual(9000);
+    expect(elapsed).toBeLessThan(20000);
+    expect(submission).toMatchObject({ id, status: "permanent_failure", failureCode: "grading_hard_cutoff", attempts: 1, activeRunId: null, leaseExpiresAt: null });
+    expect((await db.select().from(schema.gradingRuns))[0]).toMatchObject({ state: "failed", failureCode: "grading_hard_cutoff" });
+    expect(await db.select().from(schema.grades)).toHaveLength(0);
+  });
   it("unknown mock work is unsupported input, not a fabricated zero", async () => {
     const { student, practice } = await classroom();
     await runtime.runPromise(submitAnswer(student.token, answer(practice.questionId, "anything else")));
@@ -295,7 +313,8 @@ describe("durable mock pipeline (real pgmq SQL and PostgreSQL transactions)", ()
     expect(Buffer.from(await runtime.runPromise(submissionImage(a.teacher.token, id)))).toEqual(bytes);
     await runtime.runPromise(runBatch);
     const view = await runtime.runPromise(practiceOverview(a.teacher.token));
-    expect(view.submissions[0].draftGrade?.totalScore).toBe(10);
+    expect(view.submissions[0].draftGrade?.totalScore).toBeGreaterThanOrEqual(0);
+    expect(view.submissions[0].draftGrade?.totalScore).toBeLessThanOrEqual(10);
     const source = (await db.select().from(schema.submissions))[0].source;
     expect(source.type).toBe("image");
     if (source.type === "image") expect(view.submissions[0].extractedAnswer?.sourceImageObjectKey).toBe(source.objectKey);
