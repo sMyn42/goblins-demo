@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794362692510,
+      "tag": "0000_auth_and_classes",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794371917917,
+      "tag": "0001_mock_grading_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794375248690,
+      "tag": "0002_multiple_assignments_and_publication_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794376057271,
+      "tag": "0003_multiple_problems_and_teacher_review",
+      "breakpoints": true
+    }
+  ]
+}

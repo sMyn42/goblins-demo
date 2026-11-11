@@ -1,0 +1,36 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: goblins
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: goblins_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U goblins -d goblins_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://goblins:test-password@localhost:5432/goblins_test
+      TEST_DATABASE_URL: postgres://goblins:test-password@localhost:5432/goblins_test
+      NEXT_TELEMETRY_DISABLED: "1"
+      PGMQ_INSTALL_MODE: sql
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build && npm run build:worker
+      - run: npm run db:migrate
+      - run: npx playwright install --with-deps chromium
+      - run: E2E_PRODUCTION=1 npm run test:e2e
+      - run: npm run test:recovery

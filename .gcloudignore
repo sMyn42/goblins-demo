@@ -1,0 +1,15 @@
+.gcloudignore
+.git
+node_modules
+.next
+dist
+.env
+.env.*
+!.env.example
+.data
+artifacts
+coverage
+test-results
+playwright-report
+.DS_Store
+*.log

@@ -1,0 +1,60 @@
+{
+  "name": "goblins",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:worker": "esbuild src/worker/main.ts --bundle --platform=node --target=node22 --format=esm --packages=external --outfile=dist/worker.mjs",
+    "start": "next start",
+    "worker": "tsx src/worker/main.ts",
+    "worker:prod": "node dist/worker.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:recovery": "tsx scripts/test-worker-recovery.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "setup:storage": "tsx scripts/setup-storage.ts",
+    "verify:models": "tsx scripts/verify-models.ts",
+    "eval:quality": "tsx scripts/evaluate-quality.ts",
+    "smoke:inference": "tsx scripts/smoke-inference.ts",
+    "cloud:check": "tsx scripts/deploy-cloud-run.ts",
+    "deploy:cloud": "tsx scripts/deploy-cloud-run.ts --deploy"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "dotenv": "^18.0.10",
+    "drizzle-orm": "^0.45.4",
+    "effect": "^3.22.4",
+    "next": "^16.4.6",
+    "pngjs": "^7.0.0",
+    "postgres": "^4.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/node": "^26.6.6",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6",
+    "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
