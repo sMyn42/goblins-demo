@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { pgTable, pgEnum, uuid, varchar, text, timestamp, integer, index, check, jsonb, boolean, unique, foreignKey } from "drizzle-orm/pg-core";
 import type { AnswerSource, ExtractedAnswer, GradeResult, Question } from "../grading/contracts";
+import type { WorkerSnapshot } from "../worker/health";
 
 export const role = pgEnum("user_role", ["teacher", "student"]);
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
@@ -130,3 +131,11 @@ export const teacherOverrides = pgTable("teacher_overrides", {
   previousResult: jsonb("previous_result").$type<GradeResult>().notNull(), result: jsonb("result").$type<GradeResult>().notNull(),
   createdAt: createdAt(),
 }, (t) => [unique("override_submission_revision_unique").on(t.submissionId, t.revision)]);
+
+// Operational gauges only: no work, student IDs, queue payloads or credentials.
+export const workerHeartbeats = pgTable("worker_heartbeats", {
+  id: uuid("id").primaryKey(), revision: varchar("revision", { length: 128 }).notNull(),
+  startedAt: createdAt(), lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  staleAfterMs: integer("stale_after_ms").notNull(), ready: boolean("ready").notNull(),
+  snapshot: jsonb("snapshot").$type<WorkerSnapshot>().notNull(),
+}, (t) => [index("worker_heartbeat_seen_idx").on(t.lastSeenAt)]);

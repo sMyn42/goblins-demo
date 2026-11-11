@@ -34,3 +34,4 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: E2E_PRODUCTION=1 npm run test:e2e
       - run: npm run test:recovery
+      - run: LATENCY_TEST_MS=10000 npm run test:latency

@@ -13,9 +13,11 @@ export const gradingConfig = Config.all({
   concurrency: integer("WORKER_CONCURRENCY", 2, 1, 20), leaseSeconds: integer("WORKER_LEASE_SECONDS", 120, 15, 900),
   maxAttempts: integer("WORKER_MAX_ATTEMPTS", 3, 1, 10), pollMs: integer("WORKER_POLL_MS", 1000, 50, 60000),
   ocrMaxTokens: integer("OCR_MAX_TOKENS", 4096, 256, 16000), gradingMaxTokens: integer("GRADING_MAX_TOKENS", 4096, 256, 16000),
-  ocrTimeoutMs: integer("OCR_TIMEOUT_MS", 15000, 10, 120000), gradingTimeoutMs: integer("GRADING_TIMEOUT_MS", 20000, 10, 120000),
+  ocrTimeoutMs: integer("OCR_TIMEOUT_MS", 15000, 10, 600000), gradingTimeoutMs: integer("GRADING_TIMEOUT_MS", 20000, 10, 600000),
   mockLatencyMs: integer("MOCK_LATENCY_MS", 500, 0, 10000),
   mockSeed: integer("MOCK_SEED", 42, 0, 2147483647),
+  fixedMockOcrMs: integer("MOCK_FIXED_OCR_LATENCY_MS", -1, -1, 600000),
+  fixedMockGradingMs: integer("MOCK_FIXED_GRADING_LATENCY_MS", -1, -1, 600000),
   failureMode: Config.literal("none", "transient", "permanent", "malformed", "timeout")("MOCK_FAILURE_MODE").pipe(Config.withDefault("none")),
   failureRate: Config.number("MOCK_FAILURE_RATE").pipe(Config.withDefault(0), Config.validate({ message: "MOCK_FAILURE_RATE must be between 0 and 1", validation: (n) => n >= 0 && n <= 1 })),
 });

@@ -14,13 +14,15 @@ export const rows = <A>(result: unknown): A[] => {
 export const enqueueSQL = (submissionId: string) => sql`SELECT pgmq.send('grading_jobs'::text, ${JSON.stringify({ submissionId })}::jsonb)`;
 const Payload = Schema.Struct({ submissionId: Schema.UUID });
 const payload = Schema.decodeUnknownOption(Payload);
+export async function checkQueue(db: Database) {
+  const result = rows<{ queue_name: string }>(await db.execute(sql`SELECT queue_name FROM pgmq.meta WHERE queue_name = 'grading_jobs'`));
+  if (result.length !== 1) throw new Error("Queue missing");
+  await db.execute(sql`SELECT msg_id FROM pgmq.q_grading_jobs LIMIT 0`);
+}
 export const makeQueue = (db: Database): typeof GradingQueue.Service => {
   const query = <A>(operation: string, run: () => Promise<A>) => Effect.tryPromise({ try: run, catch: () => new StorageError({ operation }) });
   return {
-    ready: query("queue.ready", async () => {
-      const result = rows<{ queue_name: string }>(await db.execute(sql`SELECT queue_name FROM pgmq.meta WHERE queue_name = 'grading_jobs'`));
-      if (result.length !== 1) throw new Error("Queue missing");
-    }),
+    ready: query("queue.ready", () => checkQueue(db)),
     enqueue: (id) => query("queue.enqueue", async () => { await db.execute(enqueueSQL(id)); }),
     claim: (leaseSeconds, batch) => query("queue.claim", async () => {
       const result = rows<{ msg_id: string | number | bigint; read_ct: number; message: unknown }>(await db.execute(sql`SELECT * FROM pgmq.read('grading_jobs'::text, ${leaseSeconds}::integer, ${batch}::integer)`));

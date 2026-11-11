@@ -9,6 +9,8 @@ import { OCRProvider, TextGradingProvider } from "./ports";
 const uniform = (seed: string) => (createHash("sha256").update(seed).digest().readUInt32BE(0) + 1) / 4294967297;
 // Seeded log-normal latency; long tails are independent of deterministic fixture scores.
 export const mockDelay = (id: string, stage: string, config: GradingSettings) => {
+  const fixed = stage === "ocr" ? config.fixedMockOcrMs : config.fixedMockGradingMs;
+  if (fixed >= 0) return fixed;
   const key = `${config.mockSeed}:${id}:${stage}`;
   const normal = Math.sqrt(-2 * Math.log(uniform(key))) * Math.cos(2 * Math.PI * uniform(`${key}:tail`));
   return Math.min(config.mockLatencyMs * 20, Math.round(config.mockLatencyMs * Math.exp(normal * 0.8)));

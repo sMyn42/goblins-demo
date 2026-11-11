@@ -29,6 +29,13 @@
       "when": 1794376057271,
       "tag": "0003_multiple_problems_and_teacher_review",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794381005186,
+      "tag": "0004_worker_progress_heartbeats",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:recovery": "tsx scripts/test-worker-recovery.ts",
+    "test:latency": "tsx scripts/test-worker-latency.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "setup:storage": "tsx scripts/setup-storage.ts",

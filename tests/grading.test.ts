@@ -25,6 +25,8 @@ import { COMPLETE_WORK, PRACTICE_CRITERIA, PRACTICE_PROMPT } from "../src/gradin
 import type { AssignmentDraft } from "../src/grading/contracts";
 import { approveSubmission, practiceOverview, publishPractice, submitAnswer, submitImage, submissionImage, retrySubmission, saveReview, setDraftVisibility } from "../src/grading/application";
 import { runBatch, processJob } from "../src/grading/worker";
+import { makeWorkerHealth } from "../src/worker/health";
+import { makeHeartbeatStore } from "../src/worker/heartbeat-store";
 import * as schema from "../src/db/schema";
 
 const pg = new PGlite();
@@ -39,7 +41,7 @@ const createRuntime = (changes: Partial<GradingSettings> = {}) => {
 };
 let runtime: ReturnType<typeof createRuntime>;
 beforeAll(async () => { root = await mkdtemp(join(tmpdir(), "goblins-test-")); await migrate(db, { migrationsFolder: "drizzle" }); await pg.exec(await readFile("vendor/pgmq/pgmq--1.13.1.sql", "utf8")); await setupQueue(db, "existing"); });
-beforeEach(async () => { await db.execute(sql`TRUNCATE users, rate_limits CASCADE`); await db.execute(sql`TRUNCATE pgmq.q_grading_jobs, pgmq.a_grading_jobs`); runtime = createRuntime(); });
+beforeEach(async () => { await db.execute(sql`TRUNCATE users, rate_limits, worker_heartbeats CASCADE`); await db.execute(sql`TRUNCATE pgmq.q_grading_jobs, pgmq.a_grading_jobs`); runtime = createRuntime(); });
 afterEach(async () => { await runtime.dispose(); });
 afterAll(async () => { await pg.close(); await rm(root, { recursive: true, force: true }); });
 async function classroom(name = "teacher", draft?: AssignmentDraft) {
@@ -152,6 +154,27 @@ describe("durable mock pipeline (real pgmq SQL and PostgreSQL transactions)", ()
     expect(concurrent.filter((entry) => entry._tag === "Right")).toHaveLength(1);
     expect(await db.select().from(schema.teacherOverrides)).toHaveLength(1);
     await expect(db.update(schema.grades).set({ result: { ...(await db.select().from(schema.grades))[0].result, totalScore: 0 } })).rejects.toThrow();
+  });
+  it("persists operational keepalives without consuming jobs and marks stale/stopped workers unready", async () => {
+    const a = await classroom();
+    await runtime.runPromise(submitAnswer(a.student.token, answer(a.practice.questionId)));
+    const monitor = makeHeartbeatStore(db);
+    await Effect.runPromise(monitor.probe);
+    const queued = await pg.query<{ read_ct: number }>("SELECT read_ct FROM pgmq.q_grading_jobs");
+    expect(queued.rows).toHaveLength(1); expect(queued.rows[0].read_ct).toBe(0);
+    const health = await Effect.runPromise(makeWorkerHealth({ intervalMs: 15000, timeoutMs: 3000, staleAfterMs: 60000, internalStallMs: 30000 }, 1000));
+    await Effect.runPromise(Effect.all([health.startLoop, health.startProbeLoop, health.probeResult(true)]));
+    await Effect.runPromise(health.claimSucceeded(1));
+    await Effect.runPromise(health.jobPhase("private-run-id", "waiting_grading"));
+    const id = randomUUID();
+    await Effect.runPromise(monitor.record(id, "test-revision", await Effect.runPromise(health.snapshot), 60000));
+    expect(await Effect.runPromise(monitor.list)).toMatchObject([{ id, fresh: true, ready: true, snapshot: { waitingGrading: 1 } }]);
+    expect(JSON.stringify(await Effect.runPromise(monitor.list))).not.toContain("private-run-id");
+    await db.update(schema.workerHeartbeats).set({ lastSeenAt: new Date(Date.now() - 120000) });
+    expect(await Effect.runPromise(monitor.list)).toMatchObject([{ id, fresh: false, ready: false }]);
+    await Effect.runPromise(health.stop);
+    await Effect.runPromise(monitor.record(id, "test-revision", await Effect.runPromise(health.snapshot), 60000));
+    expect(await Effect.runPromise(monitor.list)).toMatchObject([{ id, fresh: true, ready: false, snapshot: { stopping: true } }]);
   });
   it("deduplicates concurrent submissions and redelivered jobs without extra results/events", async () => {
     const { student, practice } = await classroom();

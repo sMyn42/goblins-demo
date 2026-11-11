@@ -17,7 +17,7 @@ export default defineConfig({
     url: "http://localhost:3100/api/health",
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { APP_MODE: "test", OCR_PROVIDER: "mock", GRADING_PROVIDER: "mock", DATABASE_URL: databaseUrl, APP_ORIGIN: "http://localhost:3100", NEXT_TELEMETRY_DISABLED: "1", STORAGE_PROVIDER: "local", LOCAL_STORAGE_PATH: ".data/e2e-images" },
+    env: { WORKER_MONITOR_TOKEN: "e2e-operator-token-not-a-real-secret-12345", APP_MODE: "test", OCR_PROVIDER: "mock", GRADING_PROVIDER: "mock", DATABASE_URL: databaseUrl, APP_ORIGIN: "http://localhost:3100", NEXT_TELEMETRY_DISABLED: "1", STORAGE_PROVIDER: "local", LOCAL_STORAGE_PATH: ".data/e2e-images" },
   }, {
     command: production ? "node dist/worker.mjs" : "npm run worker",
     url: "http://localhost:3120/ready", reuseExistingServer: false, timeout: 60000,

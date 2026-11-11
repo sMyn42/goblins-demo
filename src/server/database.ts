@@ -9,6 +9,7 @@ import { makeQueue } from "../db/queue";
 import { makeSubmissionRepository } from "../db/submissions";
 import { GradingQueue, SubmissionRepository } from "../grading/ports";
 import * as schema from "../db/schema";
+import { WorkerHeartbeats, makeHeartbeatStore } from "../worker/heartbeat-store";
 
 export class DatabaseConnection extends Context.Tag("goblins/Database")<DatabaseConnection, { db: Database }>() {}
 export const DatabaseLive = Layer.scoped(DatabaseConnection, Effect.gen(function* () {
@@ -22,4 +23,5 @@ export const DatabaseLive = Layer.scoped(DatabaseConnection, Effect.gen(function
 const StoreLive = Layer.effect(Store, Effect.map(DatabaseConnection, ({ db }) => makeStore(db)));
 const QueueLive = Layer.effect(GradingQueue, Effect.map(DatabaseConnection, ({ db }) => makeQueue(db)));
 const SubmissionsLive = Layer.effect(SubmissionRepository, Effect.map(DatabaseConnection, ({ db }) => makeSubmissionRepository(db)));
-export const InfrastructureLive = Layer.mergeAll(StoreLive, QueueLive, SubmissionsLive).pipe(Layer.provide(DatabaseLive));
+const HeartbeatsLive = Layer.effect(WorkerHeartbeats, Effect.map(DatabaseConnection, ({ db }) => makeHeartbeatStore(db)));
+export const InfrastructureLive = Layer.mergeAll(StoreLive, QueueLive, SubmissionsLive, HeartbeatsLive).pipe(Layer.provide(DatabaseLive));

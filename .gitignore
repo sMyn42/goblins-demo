@@ -13,3 +13,6 @@ test-results/
 *.tsbuildinfo
 .DS_Store
 *.log
+# Locally downloaded operator CLI; not application source.
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz

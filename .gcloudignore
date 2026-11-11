@@ -13,3 +13,5 @@ test-results
 playwright-report
 .DS_Store
 *.log
+google-cloud-sdk
+google-cloud-cli-*.tar.gz

@@ -4,6 +4,8 @@ An introductory-algebra grading workspace built with **TypeScript, Effect 3, Nex
 
 **Current state:** the local product workflow and Phase 5 review/approval UX are implemented and regression-tested. **Normal operation uses real OpenRouter inference**: `google/gemini-3.5-flash` for image OCR and `openai/gpt-6-luna` for text grading. Tests/load tests select mocks explicitly. Remote infrastructure is being handled separately; no completed Cloud Run rollout is claimed by this checkout.
 
+Worker readiness uses independent DB/queue probes and persisted progress keepalives, not batch completion. See [worker health and long-tail reproduction](docs/worker-health.md). Apply migration `0004_worker_progress_heartbeats.sql` before rollout.
+
 Specification: [v5](docs/product-plan-v5.md). [Progress](docs/progress.md) · [Testing](docs/testing.md) · [Deployment](docs/deployment.md).
 
 [Review deck screenshot](docs/screenshots/review-deck.png) · [Multi-problem student view](docs/screenshots/multiple-problems.png). Screenshots use synthetic mock-backed browser-test accounts, not real-model quality evidence.

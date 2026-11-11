@@ -2,6 +2,10 @@
 
 Authoritative plan: [product-plan-v5.md](product-plan-v5.md). Phases are dependency-ordered milestones, not calendar periods. The earlier v3 phase order is historical.
 
+## Worker latency robustness update
+
+Independent supervised probes/keepalives replace batch-completion freshness. An isolated monitor pool and physical-query single-flight guard bound probing. Main-service operator telemetry reads fresh/stale worker snapshots without student data; failed core loops/internal stalls cannot be masked by healthy DB probes. Job deadlines, queue leases and run fencing are unchanged. Migration `0004_worker_progress_heartbeats.sql` is required. See [worker health](worker-health.md).
+
 ## Current checkpoint
 
 **Phase 5's local review/status/approval workflow is implemented and regression-tested**, including the requested multiple assignments/problems and separate student/assignment navigation. Infrastructure is being handled by the operator. No completed Cloud Run rollout is claimed by the coding agent.
